@@ -1,21 +1,20 @@
 'use client'
 
-
 import Image from 'next/image'
-import { Badge, Link, Tag } from '@chakra-ui/react'
-import { ExternalLinkIcon } from '@chakra-ui/icons'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { Badge, Button, Box, Flex, Text } from '@chakra-ui/react'
 
-import DataTable from '@/components/DataTable'
+import { formatDate } from '@/utils'
+import DataTable, { DataTableCell } from '@/components/DataTable'
 
 import type { Album, AlbumResponse } from '@/types/album'
 
-const API_ENDPOINT = 'https://itunes.apple.com/search?term=michael+jackson&entity=album'
+const API_ENDPOINT = 'https://cors-anywhere.herokuapp.com/https://itunes.apple.com/search?term=michael+jackson&entity=album'
 
 export default function Home() {
   const [error, setError] = useState<any>(null)
   const [albums, setAlbums] = useState<Album[]>([])
-  const [isLoading, setLoading] = useState<Boolean>(false)
+  const [isLoading, setLoading] = useState<boolean>(false)
 
   useEffect(() => {
     fetchUsers()
@@ -24,7 +23,7 @@ export default function Home() {
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      const res = await fetch(API_ENDPOINT)
+      const res = await fetch(API_ENDPOINT, { headers: { 'Access-Control-Allow-Origin':'*' }})
       const { results } = await res.json() as unknown as AlbumResponse
       setAlbums(results)
     } catch (err) {
@@ -35,73 +34,100 @@ export default function Home() {
   }
 
   const getHeaders = () => [
-    'Artwork',
-    'Name',
+    'Album',
     'Genre',
     'Release Date',
     'Track Count',
     '',
   ]
 
-  const getRows = () => albums.map((album) => [
-    {
-      value: renderArtwork(album.artworkUrl100, album.collectionName),
-      isNumeric: false,
-    },
+  const getColumnsConfig = () => [
+    { sortable: true },
+    { sortable: true },
+    { sortable: true },
+    { sortable: true },
+    { sortable: false },
+  ]
+
+  const getRows = (): DataTableCell[][] => albums.map((album) => [
     {
       value: album.collectionName,
-      isNumeric: false,
+      content: renderAlbumName(album.collectionName, album.artworkUrl100),
     },
     {
-      value: renderGenre(album.primaryGenreName),
-      isNumeric: false,
+      value: album.primaryGenreName,
+      content: renderGenre(album.primaryGenreName),
     },
     {
-      value: renderReleaseDate(album.releaseDate),
-      isNumeric: false,
+      value: new Date(album.releaseDate),
+      content: renderReleaseDate(album.releaseDate),
     },
     {
-      value: renderTrackCount(album.trackCount),
-      isNumeric: false,
+      value: album.trackCount,
+      content: renderTrackCount(album.trackCount),
     },
     {
-      value: renderLink(album.collectionViewUrl),
-      isNumeric: false,
+      value: null,
+      content: renderAction(album.collectionViewUrl),
     },
   ])
 
-  const renderArtwork = (artworkUrl: string, alt: string) => {
+  const renderReleaseDate = (releaseDate: string) => {
+    return (
+      <Text>{formatDate(releaseDate)}</Text>
+    )
+  }
+
+  const renderTrackCount = (trackCount: number) => (
+    <Badge
+      fontSize='sm'
+      variant='subtle'
+      borderRadius='full'
+      colorScheme='orange'
+    >
+      {trackCount}
+    </Badge>
+  )
+
+  const renderGenre = (genre: string) => (
+    <Text fontSize='md' noOfLines={1}>{genre}</Text>
+  )
+
+  const renderAction = (url: string) => (
+    <Button
+      size='sm'
+      colorScheme='orange'
+      onClick={() => window.open(url, '_blank')?.focus()}
+    >
+      Listen
+    </Button>
+  )
+
+  const renderAlbumName = (name: string, artworkUrl: string) => {
     const imageStyle = {
       borderRadius: '5px',
       boxShadow: '20px 20px 60px #BEBEBE, -20px -20px 60px #FFFFFF',
     }
     return (
-      <Image src={artworkUrl} alt={alt} width={72} height={72} style={imageStyle} />
+      <Flex alignItems='center' gap='2'>
+        <Image src={artworkUrl} alt={name} width={32} height={32} style={imageStyle} />
+        <Text fontSize='lg' noOfLines={1}>{name}</Text>
+      </Flex>
     )
   }
-
-  const renderReleaseDate = (releaseDate: string) => {
-    const date = new Date(releaseDate)
-    return (
-      <span>{date.toLocaleDateString()}</span>
-    )
-  }
-
-  const renderTrackCount = (trackCount: number) => (
-    <Badge variant='subtle' borderRadius='full'>{trackCount}</Badge>
-  )
-
-  const renderGenre = (genre: string) => (
-    <Tag variant='solid' borderRadius='full'>{genre}</Tag>
-  )
-
-  const renderLink = (url: string) => (
-    <Link href={url} isExternal>Listen <ExternalLinkIcon mb='5px' /></Link>
-  )
 
   return (
-    <main>
-      <DataTable headers={getHeaders()} rows={getRows()} caption="Michael Jackson's Albums" />
-    </main>
+    <Box m='16px'>
+      <Text fontSize='3xl' fontWeight='black'>Tryp Data Table</Text>
+      <Box my='24px'>
+        <DataTable
+          sortable
+          rows={getRows()}
+          headers={getHeaders()}
+          columnsConfig={getColumnsConfig()}
+          caption={'Michael Jackson\'s Albums'}
+        />
+      </Box>
+    </Box>
   )
 }
