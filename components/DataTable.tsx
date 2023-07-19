@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 import {
   Button,
@@ -96,14 +96,14 @@ export default function DataTable({
     setSortedRows(nextSortedRows);
   }, [rows, search, sortDirection, sortIndex]);
 
-  const handleSort = (index: number) => {
+  const handleSort = useCallback((index: number) => {
     if (sortIndex !== index) {
       setSortIndex(index);
       setSortDirection(SortDirection.ASC);
     } else {
       setSortDirection((dir) => (dir === SortDirection.NONE ? 0 : dir + 1));
     }
-  };
+  }, [sortIndex]);
 
   const tableHeaders = useMemo(() => (
     <Thead>
@@ -155,7 +155,7 @@ export default function DataTable({
         ))}
       </Tr>
     </Thead>
-  ), [headers, columnsConfig, sortDirection, sortIndex]);
+  ), [columnsConfig, handleSort, headers, sortable, sortDirection, sortIndex]);
 
   const renderBody = () => {
     const start = paginated ? Math.max((page - 1) * perPage, 0) : 0;

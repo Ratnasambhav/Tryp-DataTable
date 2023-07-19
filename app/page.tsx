@@ -2,7 +2,7 @@
 
 import Head from 'next/head';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Badge,
   Button,
@@ -25,10 +25,10 @@ import { formatDate } from '../utils';
 import type { NextPage } from 'next';
 import type { Album, AlbumResponse } from '@/types/album';
 
-const API_ENDPOINT = 'https://itunes.apple.com/search';
 const DEFAULT_ARTIST = 'Björk';
 const ALBUM_ENTITY_NAME = 'album';
 const DEFAULT_ALBUMS_PER_PAGE = 10;
+const API_ENDPOINT = 'https://itunes.apple.com/search';
 
 const Home: NextPage = () => {
   const [error, setError] = useState<any>(null);
@@ -43,11 +43,7 @@ const Home: NextPage = () => {
   const [search, setSearch] = useState<string>('');
   const searchArtist = useDebounce<string>(artist, 500);
 
-  useEffect(() => {
-    searchArtist && fetchAlbums();
-  }, [searchArtist]);
-
-  const fetchAlbums = async () => {
+  const fetchAlbums = useCallback(async () => {
     setLoading(true);
     try {
       const url = new URL(API_ENDPOINT);
@@ -56,13 +52,18 @@ const Home: NextPage = () => {
       const res = await fetch(url.toString());
       const { results, resultCount } = (await res.json()) as AlbumResponse;
       setAlbums(results);
-      setTableCaption(`${artist}'s Albums (${resultCount} albums)`);
+      setTableCaption(`${searchArtist}'s Albums (${resultCount} albums)`);
     } catch (err) {
       setError(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchArtist]);
+
+  useEffect(() => {
+    searchArtist && fetchAlbums();
+  }, [searchArtist, fetchAlbums]);
+
 
   const getHeaders = () => [
     'Album',
@@ -159,7 +160,7 @@ const Home: NextPage = () => {
   const renderForm = () => (
     <Flex gap="4" my="16px" direction="row" wrap="wrap">
       <InputGroup maxW="320px">
-        <InputLeftAddon children="Artist:" />
+        <InputLeftAddon>Artist:</InputLeftAddon>
         <Input
           type="text"
           value={artist}
@@ -167,7 +168,7 @@ const Home: NextPage = () => {
         />
       </InputGroup>
       <InputGroup maxW="256px">
-        <InputLeftAddon children="Albums Per Page:" />
+        <InputLeftAddon>Albums Per Page:</InputLeftAddon>
         <Input
           type="number"
           value={albumsPerPage}
@@ -186,7 +187,7 @@ const Home: NextPage = () => {
       </Flex>
       <Flex>
         <InputGroup maxW="320px">
-          <InputLeftAddon children="Search:" />
+          <InputLeftAddon>Search:</InputLeftAddon>
           <Input
             type="text"
             value={search}
