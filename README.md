@@ -31,8 +31,3 @@ columnsConfig?: ColumnConfig[];
 1. Better error handling for API calls
 2. Per column filtering
 3. Fixed column widths so layout doesn't shift when rows change
-
-## Why is there no git history?
-
-The only laptop I have is my work laptop which is provided by my current employer. As such, my laptop has a lot of restrictions including installing software packages like Node, npm etc. Additionally, the only git/github account which can be added is my work account. The reposiroties created through this acount have to be private and I wouldn't be able to share a link for that reposiroty.
-Hence I had to work on this task in an online IDE like Stackblitz but sadly this lacks git and this project doesn;t have any git history.
