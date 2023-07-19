@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 import {
   Button,
@@ -46,7 +46,7 @@ enum SortDirection {
 }
 
 export default function DataTable({
-  rows,
+  rows = [],
   headers,
   caption,
   search = '',
@@ -60,41 +60,6 @@ export default function DataTable({
   const [sortDirection, setSortDirection] = useState<SortDirection>(
     SortDirection.NONE
   );
-  const [sortedRows, setSortedRows] = useState<DataTableCell[][]>(rows);
-
-  useEffect(() => {
-    const filteredRows = search.length
-      ? rows.filter(([{ value }]) =>
-          (value as string).toLowerCase().includes(search.toLowerCase())
-        )
-      : rows;
-
-    const nextSortedRows =
-      sortIndex === null || sortDirection === SortDirection.NONE
-        ? filteredRows
-        : filteredRows.toSorted((rowA, rowB) => {
-            const valueA = rowA.at(sortIndex)?.value;
-            const valueB = rowB.at(sortIndex)?.value;
-            const modifier = sortDirection === SortDirection.ASC ? 1 : -1;
-
-            switch (typeof valueA) {
-              case 'number':
-                return (valueA - valueB) * modifier;
-              case 'string':
-                return valueA.localeCompare(valueB) * modifier;
-              default:
-                return (
-                  (valueA instanceof Date && valueB instanceof Date
-                    ? valueA > valueB
-                      ? 1
-                      : -1
-                    : compareObjects(valueA, valueB)) * modifier
-                );
-            }
-          });
-
-    setSortedRows(nextSortedRows);
-  }, [rows, search, sortDirection, sortIndex]);
 
   const handleSort = useCallback((index: number) => {
     if (sortIndex !== index) {
@@ -158,11 +123,42 @@ export default function DataTable({
   ), [columnsConfig, handleSort, headers, sortable, sortDirection, sortIndex]);
 
   const renderBody = () => {
+    const filteredRows = search.length
+      ? rows.filter(([{ value }]) =>
+          (value as string).toLowerCase().includes(search.toLowerCase())
+        )
+      : rows;
+
+    const sortedRows: DataTableCell[][] = sortIndex === null || sortDirection === SortDirection.NONE
+      ? filteredRows
+      : filteredRows.toSorted((rowA, rowB) => {
+          const valueA = rowA.at(sortIndex)?.value;
+          const valueB = rowB.at(sortIndex)?.value;
+          const modifier = sortDirection === SortDirection.ASC ? 1 : -1;
+
+          switch (typeof valueA) {
+            case 'number':
+              return (valueA - valueB) * modifier;
+            case 'string':
+              return valueA.localeCompare(valueB) * modifier;
+            default:
+              return (
+                (valueA instanceof Date && valueB instanceof Date
+                  ? valueA > valueB
+                    ? 1
+                    : -1
+                  : compareObjects(valueA, valueB)) * modifier
+              );
+          }
+        });
+
     const start = paginated ? Math.max((page - 1) * perPage, 0) : 0;
     const end = paginated ? page * perPage : -1;
+    const slicedRows = sortedRows.slice(start, end);
+
     return (
       <Tbody>
-        {sortedRows.slice(start, end).map((row, index) => (
+        {slicedRows.map((row, index) => (
           <Tr
             _hover={{ backgroundColor: 'orange.100' }}
             key={`${headers[index]}-${index}`}
@@ -179,11 +175,17 @@ export default function DataTable({
   };
 
   const renderPagination = () => {
-    if (!paginated || perPage >= sortedRows.length) {
+    const numRows = search.length
+      ? rows.filter(([{ value }]) =>
+          (value as string).toLowerCase().includes(search.toLowerCase())
+        ).length
+      : rows.length;
+
+    if (!paginated || perPage >= numRows) {
       return null;
     }
 
-    const maxPage = Math.ceil(sortedRows.length / perPage);
+    const maxPage = Math.ceil(numRows / perPage);
     const onNext = () =>
       setPage((currentPage) => Math.min(currentPage + 1, maxPage));
     const onPrev = () => setPage((currentPage) => Math.max(currentPage - 1, 1));
@@ -202,7 +204,7 @@ export default function DataTable({
     );
   };
 
-  if (!sortedRows.length) {
+  if (!rows.length) {
     return (
       <Center>
         <Text fontWeight="bold" fontSize="lg">
